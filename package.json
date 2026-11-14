@@ -1,0 +1,21 @@
+{
+  "name": "kilo-task-recall",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plugin TUI para Kilo Code CLI: recordatorio visual automático del prompt original al terminar cada respuesta.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.ts",
+    "check:syntax": "node --check src/index.ts || true"
+  },
+  "keywords": [
+    "kilo",
+    "kilo-code",
+    "plugin",
+    "tui"
+  ],
+  "license": "MIT"
+}
