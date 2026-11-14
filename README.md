@@ -36,8 +36,17 @@ registra como evidencia en `%LOCALAPPDATA%\kilo-task-recall\turns.jsonl`.
 
 ## Desarrollo
 ```
-npm test        # node --test tests/*.test.ts (14 pruebas del motor puro)
+npm test        # node --test tests/*.test.ts (16 pruebas T-A1..T-A16)
 ```
+Nota: ejecutar `npm test` siempre desde la unidad Z: (cmd.exe/npm no soportan
+rutas UNC; desde `\\wsl.localhost\...` npm reporta 0 tests).
+
+## Pruebas
+- Automatizadas: 16/16 en verde (`npm test`), estado en `ralph/ACCEPTANCE.md` §A.
+- Semi-automatizadas (Ralph): estructura, carga sintáctica en Node, pipeline
+  `kilo run`/`kilo export`, instalación global y carga en Kilo → §B, PASS.
+- Manuales T01–T16: procedimiento paso a paso en `docs/MANUAL-TEST-GUIDE.md`;
+  pendientes de validación por el usuario → §C.
 
 ## Limitaciones conocidas
 - `kilo run` (modo no interactivo) no tiene TUI → no muestra recordatorio.

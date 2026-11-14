@@ -32,36 +32,36 @@ Tareas (de TASKS.md): ejecuta la PRIMERA tarea `[ ]` sin marcar, en orden.
       (src/, tests/, docs/, AGENTS.md, README.md, package.json, tsconfig.json, .gitignore,
       ralph/{PRD,TASKS,PROGRESS,ERRORS,ACCEPTANCE}.md), git repo inicializado y commit
       inicial presente (`git log --oneline`). Evidencia: salidas pegadas en PROGRESS.md.
-- [ ] R2: Suite unitaria en verde: ejecutar `npm test` desde
+- [x] R2: Suite unitaria en verde: ejecutar `npm test` desde
       `Z:\home\delac\proyectosIA\rembember_prompt\kilo-task-recall` y registrar pass/fail.
-- [ ] R3: Auditoría código↔PRD: revisar `src/index.ts` y `src/recall-engine.ts` contra
+- [x] R3: Auditoría código↔PRD: revisar `src/index.ts` y `src/recall-engine.ts` contra
       RF-01..RF-16 de PRD.md; corregir desviaciones y añadir tests unitarios nuevos si
       falta cobertura (mínimo mantener los 14 existentes en verde). Evidencia: `npm test`.
-- [ ] R4: Prueba de carga sintáctica del plugin en Node sin SDK en runtime
+- [x] R4: Prueba de carga sintáctica del plugin en Node sin SDK en runtime
       (import de `src/index.ts` debe funcionar porque el import del SDK es `import type`):
       `node -e "await import('Z:/home/delac/proyectosIA/rembember_prompt/kilo-task-recall/src/index.ts').then(m=>console.log('OK', Object.keys(m)))"`
       Evidencia: salida OK con las claves exportadas.
-- [ ] R5: Validación del pipeline de datos con Kilo CLI: `kilo run "test kilo-task-recall"`
+- [x] R5: Validación del pipeline de datos con Kilo CLI: `kilo run "test kilo-task-recall"`
       en un proyecto temporal, y verificar con `kilo export <sessionID>` que el turno
       contiene UserMessage + AssistantMessage (parentID, time.created/completed) tal como
       los consume el plugin. Evidencia: fragmento del export en PROGRESS.md.
-- [ ] R6: Instalación global AUTORIZADA: copiar backup de
+- [x] R6: Instalación global AUTORIZADA: copiar backup de
       `C:\Users\delac\.config\kilo\tui.json` → `tui.json.backup-ktr`, añadir UNA entrada
       al array `plugin`: `"Z:/home/delac/proyectosIA/rembember_prompt/kilo-task-recall/src/index.ts"`,
       conservando las existentes; validar que el JSON parsea y que las 4 entradas están.
       Evidencia: parseo JSON + listado de entradas pegado en PROGRESS.md.
-- [ ] R7: Verificación de carga en Kilo: lanzar `kilo --print-logs --log-level DEBUG`
+- [x] R7: Verificación de carga en Kilo: lanzar `kilo --print-logs --log-level DEBUG`
       (o revisar logs de sesión TUI) y comprobar que NO aparece error de carga del plugin
       kilo-task-recall. Evidencia: extracto de logs en PROGRESS.md.
-- [ ] R8: Crear `docs/MANUAL-TEST-GUIDE.md` con el procedimiento paso a paso de las
+- [x] R8: Crear `docs/MANUAL-TEST-GUIDE.md` con el procedimiento paso a paso de las
       pruebas manuales T01–T16 de ACCEPTANCE.md (qué hacer en la TUI interactiva, qué
       observar, qué copiar). Sencilla, multilínea, 3 consecutivos, 2 terminales,
       10 concurrentes, error, interrupción, reinicio, prompt largo, duplicados,
       subagentes, compactación, PowerShell, instalación global, offline, desactivar.
-- [ ] R9: Coherencia final: README.md (instalación, uso, configuración, limitaciones),
+- [x] R9: Coherencia final: README.md (instalación, uso, configuración, limitaciones),
       docs/DESIGN.md actualizado a lo implementado, ACCEPTANCE.md con estado real de cada
       prueba (AUTOMATIZADA-PASS con evidencia / MANUAL-PENDIENTE para el usuario).
-- [ ] R10: Informe final: resumen en PROGRESS.md de todo lo verificable automatizado,
+- [x] R10: Informe final: resumen en PROGRESS.md de todo lo verificable automatizado,
       lista de pruebas manuales que el usuario debe ejecutar, y confirmación de que
       ninguna afirmación carece de evidencia. Entonces y solo entonces responder COMPLETE.
 

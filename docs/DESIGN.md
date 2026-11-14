@@ -60,7 +60,16 @@ También registra errores internos del plugin (level: plugin-error).
 `src/recall-engine.ts` es puro y sin SDK (tipos espejo verificados). Los tests
 corren con `node --test` (Node 24, type stripping nativo, import con extensión
 .ts). `src/index.ts` importa el SDK solo con `import type` (se borra en runtime)
-→ el módulo también carga en Node puro (tarea B2).
+→ el módulo también carga en Node puro (tarea B2, verificada 2026-11-14 con
+pathToFileURL; el esquema `z:` crudo falla en Windows — ver ERRORS.md).
+
+Detalles de implementación verificados:
+- `src/index.ts` importa `./recall-engine.ts` CON extensión (Node ESM exige
+  extensión; sin ella → ERR_MODULE_NOT_FOUND).
+- `evidenceDir()` usa `%LOCALAPPDATA%\kilo-task-recall`, con fallback a
+  `$HOME/kilo-task-recall` y a `os.tmpdir()` (test T-A16).
+- Suite actual: 16 tests (T-A1..T-A16; T-A15 pertenencia multi-terminal RF-10,
+  T-A16 evidenceDir RF-15), todos en verde (`npm test` 2026-11-14).
 
 ### Instalación
 UNA entrada en `C:\Users\delac\.config\kilo\tui.json` → array `plugin`, con

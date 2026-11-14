@@ -4,7 +4,9 @@
  */
 import { test } from "node:test"
 import assert from "node:assert/strict"
+import * as nodePath from "node:path"
 
+import { belongsToThisTui, evidenceDir } from "../src/index.ts"
 import {
   STATUS_ERROR,
   STATUS_FINISHED,
@@ -237,4 +239,51 @@ test("T-A14: assistant matcheado por parentID aunque haya otros assistants", () 
   ]
   const turn = summarizeTurn("s1", msgs, { u1: parts("p") })
   assert.equal(turn?.assistantMessageId, "a1")
+})
+
+test("T-A15 (RF-10): pertenencia multi-terminal por route/directorio", () => {
+  const session = { id: "s1", directory: "C:\\repo\\mi-app" }
+
+  // route "session": coincide el sessionID del evento con el de la sesión
+  assert.equal(
+    belongsToThisTui(session, { name: "session", params: { sessionID: "s1" } }, "C:\\otra", true),
+    true,
+  )
+  assert.equal(
+    belongsToThisTui(session, { name: "session", params: { sessionID: "s2" } }, "C:\\repo\\mi-app", true),
+    false,
+  )
+
+  // route "home": compara directorio de sesión vs directorio de trabajo (case/trailing slash)
+  assert.equal(belongsToThisTui(session, { name: "home" }, "c:\\repo\\mi-app\\", true), true)
+  assert.equal(belongsToThisTui(session, { name: "home" }, "C:\\otra\\ruta", true), false)
+  assert.equal(belongsToThisTui(session, { name: "home" }, undefined, true), false)
+  assert.equal(belongsToThisTui(undefined, { name: "home" }, "C:\\repo\\mi-app", true), false)
+
+  // ruta desconocida o sin datos → no pertenece (modo estricto)
+  assert.equal(belongsToThisTui(session, undefined, "C:\\repo\\mi-app", true), false)
+
+  // strictRouteMatch=false → siempre pertenece
+  assert.equal(belongsToThisTui(session, undefined, undefined, false), true)
+})
+
+test("T-A16 (RF-15): evidenceDir usa LOCALAPPDATA, con fallback a HOME", () => {
+  const prevLocal = process.env.LOCALAPPDATA
+  const prevHome = process.env.HOME
+  try {
+    process.env.LOCALAPPDATA = "C:\\Users\\delac\\AppData\\Local"
+    assert.equal(evidenceDir(), nodePath.join("C:\\Users\\delac\\AppData\\Local", "kilo-task-recall"))
+
+    delete process.env.LOCALAPPDATA
+    process.env.HOME = "/home/delac"
+    assert.equal(evidenceDir(), nodePath.join("/home/delac", ".local", "share", "kilo-task-recall"))
+
+    delete process.env.HOME
+    assert.ok(evidenceDir().endsWith(nodePath.join("kilo-task-recall"))) // último recurso: tmpdir
+  } finally {
+    if (prevLocal !== undefined) process.env.LOCALAPPDATA = prevLocal
+    else delete process.env.LOCALAPPDATA
+    if (prevHome !== undefined) process.env.HOME = prevHome
+    else delete process.env.HOME
+  }
 })

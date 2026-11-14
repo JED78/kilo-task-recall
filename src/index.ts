@@ -35,7 +35,7 @@ import {
   summarizeTurn,
   type EngineMessage,
   type EngineTextPart,
-} from "./recall-engine"
+} from "./recall-engine.ts"
 
 export interface KiloTaskRecallOptions {
   enabled?: boolean
@@ -89,7 +89,7 @@ function eventProps(event: unknown): EventProps {
 }
 
 /** ¿El evento pertenece a ESTA terminal? (regla route + directory). */
-function belongsToThisTui(
+export function belongsToThisTui(
   session: MinimalSession | undefined,
   route: { name: string; params?: { sessionID?: string } } | undefined,
   workdir: string | undefined,
