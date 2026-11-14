@@ -28,7 +28,7 @@ Tareas (de TASKS.md): ejecuta la PRIMERA tarea `[ ]` sin marcar, en orden.
 
 ## Checklist de tareas (una por iteración)
 
-- [ ] R1: Verificación del entorno y la estructura del proyecto: árbol completo exigido
+- [x] R1: Verificación del entorno y la estructura del proyecto: árbol completo exigido
       (src/, tests/, docs/, AGENTS.md, README.md, package.json, tsconfig.json, .gitignore,
       ralph/{PRD,TASKS,PROGRESS,ERRORS,ACCEPTANCE}.md), git repo inicializado y commit
       inicial presente (`git log --oneline`). Evidencia: salidas pegadas en PROGRESS.md.

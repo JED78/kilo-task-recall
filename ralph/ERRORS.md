@@ -9,4 +9,5 @@ Formato: fecha | síntoma | causa raíz | solución | estado.
 - 2026-11-14 (observado en plugin previo del usuario, NO de este proyecto) | remember-task-capture.ts: messageId siempre "desconocido" y captura mensajes sintéticos DCP como prompts | hook server sin acceso a parts/parentID | este proyecto NO usa server plugin: la TUI lee messages + parts reales y filtra synthetic/ignored | EVITADO POR DISEÑO.
 
 ## Errores durante el desarrollo
-(ninguno aún — registrar cada fallo con evidencia)
+
+- 2026-11-14 | Ralph loop v1 falló 9 iteraciones seguidas sin ejecutar el agente: `TypeError: The argument 'args[2]' contains a cmd.exe special character and cannot be safely passed to a .bat/.cmd file` en `Bun.spawn` (ralph.ts:2050) en TODAS las iteraciones | `resolveCommand` resuelve `opencode` → shim `opencode.cmd` y Bun en Windows se niega a pasar argumentos con caracteres especiales de cmd.exe (`#`, comillas, acentos) a un .bat/.cmd; el prompt de iteración contiene `#` (headers markdown) | apuntar ralph al binario NATIVO vía env var `RALPH_OPENCODE_BINARY=C:\Users\delac\AppData\Roaming\npm\node_modules\opencode-ai\bin\opencode.exe` (v1.18.26, 179MB; con un .exe Bun no aplica la restricción) | RESUELTO (loop relanzado). Estado previo intacto: ningún cambio en el proyecto (los fallos son previos al spawn del agente).

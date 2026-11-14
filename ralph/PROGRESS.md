@@ -11,4 +11,6 @@ Registro cronológico por iteración: fecha, tarea, evidencia (una línea por ac
 - 2026-11-14: Autorización del usuario concedida: (1) editar tui.json global con backup tui.json.backup-ktr; (2) lanzar Ralph loop (máx 60 iteraciones).
 
 ## Iteraciones (Ralph)
-(aún ninguna — rellenar cada iteración: fecha | tarea | evidencia)
+- 2026-11-14 | R1 (iter 9) | EVIDENCIA estructura: `Get-ChildItem` desde Z:\home\delac\proyectosIA\rembember_prompt\kilo-task-recall → src/ (index.ts, recall-engine.ts), tests/ (recall-engine.test.ts), docs/ (DESIGN.md), ralph/ (PRD.md, TASKS.md, PROGRESS.md, ERRORS.md, ACCEPTANCE.md — los 5), AGENTS.md, README.md, package.json, tsconfig.json, .gitignore, .git/ — todos presentes.
+- 2026-11-14 | R1 (iter 9) | EVIDENCIA git: `git log --oneline` → `474bbbf feat: KILO TASK RECALL - motor puro, plugin TUI, 14 tests en verde, docs Ralph` (rama master, commit inicial presente).
+- 2026-11-14 | R1 (iter 9) | EVIDENCIA entorno: node v24.18.0, npm 11.16.0, bun 1.4.4, kilo 7.8.27 (salida directa de comandos --version desde Z:).
