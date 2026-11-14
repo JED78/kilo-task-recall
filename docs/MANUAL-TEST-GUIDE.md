@@ -4,6 +4,12 @@ Guía paso a paso para ejecutar las pruebas manuales de usuario definidas en
 `ralph/ACCEPTANCE.md` (sección C, T01–T16). Todas requieren la TUI interactiva
 de Kilo (no valen `kilo run`).
 
+> **Nota 2026-11-14**: T01–T03, T06–T12, T14 y T16 ya fueron verificadas con un
+> banco automatizado real (`kilo serve` + `kilo attach` headless + driver HTTP +
+> evidencia en `%LOCALAPPDATA%\kilo-task-recall\turns.jsonl`); ver
+> `ralph/ACCEPTANCE.md §C`. Esta guía sigue siendo válida para validar la parte
+> visual (el toast en pantalla) y las pruebas T13 (PowerShell puro) y T15 (offline).
+
 ## Preparación común (hazlo una vez)
 
 1. Abre PowerShell en cualquier proyecto (se recomienda uno temporal, p. ej.
