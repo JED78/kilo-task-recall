@@ -74,3 +74,17 @@ ode src/cli.ts --file "$env:LOCALAPPDATA\kilo-task-recall\turns.jsonl --last imp
 - Opciones activadas: showGitBranch: true, osNotifications: true.
 - Evidencia: backup previo tui.json.backup-ktr-20261115 (334 bytes); node -e JSON.parse(...) → PARSE OK, 4 plugins, options {"showGitBranch":true,"osNotifications":true}.
 - Verificación pendiente del usuario: abrir TUI nueva de Kilo en un proyecto git y terminar un turno → toast con rama + balloon tip del OS.
+
+### 6. Regresión del popup en WSL y reinstalación (2026-11-15, iter 19)
+- Síntoma reportado por el usuario: "no sale ya el popup TUI, antes salía, después de la última actualización".
+- Diagnóstico con evidencia:
+  - El popup solo estaba instalado en el Kilo de Windows (`%USERPROFILE%\.config\kilo\tui.json`, 4 entradas).
+  - El Kilo de WSL (`~/.local/share/kilo/log/*.log` de las 18:27 y 19:07) NUNCA cargó plugins TUI: `grep "tui config|plugin"` → 0 coincidencias; no existía `~/.config/kilo/tui.json`.
+  - Último arranque del Kilo de Windows: 18:40 (log `opencode.log`); `tui.json` modificado a las 19:04 (tupla) y copia debug a las 19:25 → el cambio de ffef858 nunca llegó a ejecutarse en un TUI vivo.
+  - La copia debug de Windows cargaba sin errores (import dinámico OK) pero ensuciaba el repo con console.error y nunca se verificó en vivo.
+- Acción:
+  - Instalado plugin limpio en WSL: `~/.config/kilo/tui/kilo-task-recall/src/{index.ts,recall-engine.ts}` (232 líneas de diff = solo CRLF; código idéntico al commit).
+  - Creado `~/.config/kilo/tui.json` con tupla `[<ruta>, {showGitBranch, osNotifications}]` validada contra el schema oficial opencode.ai/tui.json (plugin items anyOf string | [string, object] — Verificado: línea 36450 del schema).
+  - Verificación empírica con TUI real: `timeout 15 script -qec kilo` → `kilo-task-recall-load-test.txt` escrito ("Plugin loaded at 2026-11-15T19:16:05.719Z") usando copia debug instrumentada; `loading/applying tui config` en log; sin errores de plugin.
+  - Copia de Windows sincronizada con la versión limpia (sin console.error).
+- Estado: popup operativo en WSL (verificado hasta carga del plugin; toast end-to-end pendiente de validación visual del usuario). Windows: pendiente de reinicio del TUI por el usuario (último arranque 18:40, antes del cambio de tupla).
