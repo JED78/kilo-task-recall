@@ -17,6 +17,8 @@ export interface BannerData {
   variant: BannerVariant
   title: string
   lines: string[]
+  /** Etiqueta a la izquierda del prompt (línea 0). */
+  promptLabel?: string
 }
 
 export interface BannerStore {
@@ -56,9 +58,17 @@ export function RecallBanner(props: { store: BannerStore }) {
           <text fg={VARIANT_COLORS[current().variant]}>
             {VARIANT_PREFIX[current().variant]} {current().title}
           </text>
-          {current().lines.map((line) => (
-            <text>{line}</text>
-          ))}
+          <Show when={current().lines.length > 0}>
+            <box flexDirection="row" gap={1}>
+              <text dim>{current().promptLabel ?? "Escribiste:"}</text>
+              <text>{current().lines[0]}</text>
+            </box>
+            <box flexDirection="column">
+              {current().lines.slice(1).map((line) => (
+                <text>{line}</text>
+              ))}
+            </box>
+          </Show>
           <text dim>ctrl+k / /ktr-clear para quitar</text>
         </box>
       )}

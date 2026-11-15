@@ -56,6 +56,8 @@ export interface KiloTaskRecallOptions {
   maxPromptDisplayLength?: number
   /** ms del toast de respaldo (solo si el slot no está disponible). */
   toastDurationMs?: number
+  /** Etiqueta mostrada a la izquierda del prompt original en el banner. */
+  promptLabel?: string
   logTurns?: boolean
   strictRouteMatch?: boolean
   /** Duración mínima del turno en ms; turnos más cortos no muestran toast. */
@@ -80,6 +82,7 @@ const DEFAULTS: Required<KiloTaskRecallOptions> = {
   showNotifications: false,
   maxPromptDisplayLength: 2000,
   toastDurationMs: 10000, // respaldo cuando el slot no está disponible
+  promptLabel: "Escribiste:",
   logTurns: true,
   strictRouteMatch: true,
   minDurationMs: 0,
@@ -379,6 +382,7 @@ export const KiloTaskRecall = async (
           variant: toast.variant,
           title: toast.title,
           lines: toast.message.split("\n"),
+          promptLabel: cfg.promptLabel,
         })
       } else {
         // Respaldo: toast clásico (se cierra solo).
