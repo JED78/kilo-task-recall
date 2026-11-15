@@ -10,8 +10,11 @@
  *     2. obtener mensajes + parts del turno (api.state.session.messages / api.state.part)
  *     3. resumir turno con el motor puro (src/recall-engine.ts)
  *     4. deduplicar por (sessionID + assistantMessageID) en memoria + api.kv
- *     5. toast (api.ui.toast) + notificación opcional (api.attention.notify)
+ *     5. banner persistente en slot app_bottom (src/banner.tsx) + notificación opcional
  *     6. registrar evidencia en %LOCALAPPDATA%\\kilo-task-recall\\turns.jsonl
+ *
+ * El banner NO es un toast: permanece visible hasta que el usuario lo quita
+ * (tecla ctrl+k o comando /ktr-clear) o llega un turno nuevo que lo reemplaza.
  *
  * Aislamiento multi-terminal: cada proceso TUI procesa sus propios eventos del
  * bus y, además, se exige coincidencia entre la sesión del evento y lo que
@@ -51,6 +54,7 @@ export interface KiloTaskRecallOptions {
   showProject?: boolean
   showNotifications?: boolean
   maxPromptDisplayLength?: number
+  /** ms del toast de respaldo (solo si el slot no está disponible). */
   toastDurationMs?: number
   logTurns?: boolean
   strictRouteMatch?: boolean
@@ -75,7 +79,7 @@ const DEFAULTS: Required<KiloTaskRecallOptions> = {
   showProject: true,
   showNotifications: false,
   maxPromptDisplayLength: 2000,
-  toastDurationMs: 0, // 0 = persistente hasta click del usuario
+  toastDurationMs: 10000, // respaldo cuando el slot no está disponible
   logTurns: true,
   strictRouteMatch: true,
   minDurationMs: 0,
@@ -210,6 +214,63 @@ export const KiloTaskRecall = async (
   const cfg: Required<KiloTaskRecallOptions> = { ...DEFAULTS, ...(options ?? {}) }
   if (!cfg.enabled) return
 
+  // Banner persistente (slot app_bottom). Import dinámico: solo existe en la
+  // TUI real (solid-js lo provee Kilo); los tests con Node nunca lo ejecutan.
+  type BannerStore = import("./banner.tsx").BannerStore
+  let banner: BannerStore | undefined
+  try {
+    const solid = await import("solid-js")
+    const mod = await import("./banner.tsx")
+    const store = mod.createBannerStore()
+    banner = store
+    api.slots.register({
+      order: 300,
+      slots: {
+        app_bottom: () => solid.createComponent(mod.RecallBanner, { store }),
+      },
+    })
+  } catch {
+    banner = undefined // sin slot: se usará toast de respaldo
+  }
+
+  // Quitar el banner: tecla ctrl+k o comando /ktr-clear.
+  const dismissBanner = (): void => {
+    try {
+      banner?.dismiss()
+    } catch {
+      /* noop */
+    }
+  }
+  try {
+    const commands = [
+      {
+        name: "ktr.clear",
+        title: "Quitar recordatorio",
+        description: "Oculta el banner de kilo-task-recall",
+        run: () => {
+          dismissBanner()
+        },
+        onSelect: () => {
+          dismissBanner()
+        },
+        slash: { name: "ktr-clear", aliases: ["ktr"] },
+      },
+    ]
+    try {
+      api.keymap.registerLayer({
+        commands,
+        bindings: [
+          { key: "ctrl+k", cmd: "ktr.clear", desc: "Quitar recordatorio" },
+        ],
+      } as never)
+    } catch {
+      // Formato de bindings no soportado: solo comando /ktr-clear.
+      api.keymap.registerLayer({ commands, bindings: [] } as never)
+    }
+  } catch {
+    /* sin keymap: el banner se puede reemplazar pero no descartar */
+  }
+
   // Dedup persistente por TUI (api.kv).
   let seen: string[] = []
   try {
@@ -313,12 +374,21 @@ export const KiloTaskRecall = async (
         cfg.logMaxBytes,
       )
 
-      await api.ui.toast({
-        variant: toast.variant,
-        title: toast.title,
-        message: toast.message,
-        duration: cfg.toastDurationMs,
-      })
+      if (banner) {
+        banner.show({
+          variant: toast.variant,
+          title: toast.title,
+          lines: toast.message.split("\n"),
+        })
+      } else {
+        // Respaldo: toast clásico (se cierra solo).
+        await api.ui.toast({
+          variant: toast.variant,
+          title: toast.title,
+          message: toast.message,
+          duration: cfg.toastDurationMs,
+        })
+      }
 
       if (cfg.showNotifications) {
         try {
