@@ -75,7 +75,7 @@ const DEFAULTS: Required<KiloTaskRecallOptions> = {
   showProject: true,
   showNotifications: false,
   maxPromptDisplayLength: 2000,
-  toastDurationMs: 10000,
+  toastDurationMs: 0, // 0 = persistente hasta click del usuario
   logTurns: true,
   strictRouteMatch: true,
   minDurationMs: 0,
