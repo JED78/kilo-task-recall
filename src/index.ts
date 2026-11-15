@@ -236,12 +236,21 @@ export const KiloTaskRecall = async (
     banner = undefined // sin slot: se usará toast de respaldo
   }
 
-  // Quitar el banner: tecla ctrl+k o comando /ktr-clear.
+  // Quitar el banner: tecla enter (con fallthrough: también envía el prompt),
+  // ctrl+k, o comando /ktr-clear. Enter solo se intercepta cuando el banner
+  // está visible, para no interferir con el prompt cuando no hay banner.
   const dismissBanner = (): void => {
     try {
       banner?.dismiss()
     } catch {
       /* noop */
+    }
+  }
+  const bannerVisible = (): boolean => {
+    try {
+      return banner?.data() != null
+    } catch {
+      return false
     }
   }
   try {
@@ -263,7 +272,19 @@ export const KiloTaskRecall = async (
       api.keymap.registerLayer({
         commands,
         bindings: [
-          { key: "ctrl+k", cmd: "ktr.clear", desc: "Quitar recordatorio" },
+          {
+            key: "enter",
+            cmd: "ktr.clear",
+            desc: "Quitar recordatorio",
+            enabled: bannerVisible,
+            fallthrough: true,
+          },
+          {
+            key: "ctrl+k",
+            cmd: "ktr.clear",
+            desc: "Quitar recordatorio",
+            enabled: bannerVisible,
+          },
         ],
       } as never)
     } catch {

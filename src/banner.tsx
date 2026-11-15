@@ -69,7 +69,7 @@ export function RecallBanner(props: { store: BannerStore }) {
               ))}
             </box>
           </Show>
-          <text dim>ctrl+k / /ktr-clear para quitar</text>
+          <text dim>enter / ctrl+k / /ktr-clear para quitar</text>
         </box>
       )}
     </Show>
