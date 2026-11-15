@@ -223,6 +223,289 @@ export function projectNameFromDirectory(dir: string | null | undefined): string
   return name || null
 }
 
+/* ------------------------ registro de evidencia (log) --------------------- */
+
+/** Línea de `turns.jsonl` (turno real o error interno del plugin). */
+export interface TurnRecord {
+  at: string
+  sessionId?: string
+  userMessageId?: string | null
+  assistantMessageId?: string | null
+  promptText?: string
+  promptLength?: number
+  durationMs?: number | null
+  status?: string
+  errorName?: string | null
+  project?: string | null
+  level?: string
+  error?: string
+}
+
+/** Parsea una línea del log; null si no es JSON válido u objeto. */
+export function parseTurnLogLine(line: string): TurnRecord | null {
+  try {
+    const rec = JSON.parse(line) as unknown
+    if (rec && typeof rec === "object" && !Array.isArray(rec)) {
+      return rec as TurnRecord
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+/** ¿Es un registro de turno real (no un error interno del plugin)? */
+export function isTurnRecord(rec: TurnRecord): boolean {
+  return !rec.level && typeof rec.status === "string" && rec.status.length > 0
+}
+
+/* ------------------------------- filtros --------------------------------- */
+
+export interface TurnFilterOptions {
+  /** Duración mínima del turno en ms (menores se ignoran). */
+  minDurationMs?: number | null
+  /** Nombres de proyecto (última sección del directorio) a silenciar. */
+  ignoreProjects?: string[] | null
+  /** Patrones (código fuente de regex) que silencian por texto del prompt. */
+  ignorePromptPatterns?: string[] | null
+}
+
+/**
+ * Decisión de mostrar un turno en la TUI según los filtros configurados.
+ * Pura: recibe el resumen del turno y el nombre de proyecto ya calculado.
+ */
+export function turnPassesFilters(
+  turn: Pick<TurnSummary, "durationMs" | "promptText">,
+  projectName: string | null,
+  opts: TurnFilterOptions,
+): boolean {
+  if (opts.minDurationMs !== null && opts.minDurationMs !== undefined) {
+    if (turn.durationMs !== null && turn.durationMs < opts.minDurationMs) return false
+  }
+  if (opts.ignoreProjects && projectName !== null) {
+    for (const p of opts.ignoreProjects) {
+      if (p && p.toLowerCase() === projectName.toLowerCase()) return false
+    }
+  }
+  if (opts.ignorePromptPatterns) {
+    for (const src of opts.ignorePromptPatterns) {
+      try {
+        if (new RegExp(src).test(turn.promptText)) return false
+      } catch {
+        /* patrón inválido: se ignora el filtro, nunca el turno */
+      }
+    }
+  }
+  return true
+}
+
+/* ------------------------------ estadísticas ------------------------------ */
+
+export interface ProjectStat {
+  project: string
+  turns: number
+  finished: number
+  interrupted: number
+  errors: number
+  totalDurationMs: number
+}
+
+export interface TurnStats {
+  total: number
+  finished: number
+  interrupted: number
+  errors: number
+  totalDurationMs: number
+  avgDurationMs: number | null
+  sessions: number
+  byProject: ProjectStat[]
+}
+
+/** Fecha local como YYYY-MM-DD (los logs se agrupan por día local). */
+export function toLocalDateString(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${y}-${m}-${day}`
+}
+
+/** ¿El registro `at` (ISO) cae dentro del día local indicado (YYYY-MM-DD)? */
+export function isSameLocalDay(iso: string, day: string): boolean {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return false
+  return toLocalDateString(d) === day
+}
+
+/**
+ * Filtra registros de turno por día local, proyecto (nombre o coincidencia
+ * en la ruta) y estado. Los errores internos (level) siempre se excluyen.
+ */
+export function filterTurnRecords(
+  records: TurnRecord[],
+  opts: { day?: string | null; project?: string | null; status?: string | null } = {},
+): TurnRecord[] {
+  let out = records.filter(isTurnRecord)
+  if (opts.day) out = out.filter((r) => isSameLocalDay(r.at, opts.day as string))
+  if (opts.project) {
+    const needle = opts.project.toLowerCase()
+    out = out.filter((r) => {
+      const dir = r.project ?? ""
+      const name = projectNameFromDirectory(dir)
+      return (name !== null && name.toLowerCase() === needle) || dir.toLowerCase().includes(needle)
+    })
+  }
+  if (opts.status) out = out.filter((r) => r.status === opts.status)
+  return out
+}
+
+/** Agrega estadísticas (productividad: completados vs interrumpidos/errores). */
+export function computeTurnStats(records: TurnRecord[]): TurnStats {
+  const turns = records.filter(isTurnRecord)
+  const stats: TurnStats = {
+    total: turns.length,
+    finished: 0,
+    interrupted: 0,
+    errors: 0,
+    totalDurationMs: 0,
+    avgDurationMs: null,
+    sessions: 0,
+    byProject: [],
+  }
+  const byProject = new Map<string, ProjectStat>()
+  const sessions = new Set<string>()
+  let durationCount = 0
+
+  for (const r of turns) {
+    if (r.status === STATUS_FINISHED) stats.finished++
+    else if (r.status === STATUS_INTERRUPTED) stats.interrupted++
+    else if (r.status === STATUS_ERROR) stats.errors++
+
+    if (typeof r.durationMs === "number" && Number.isFinite(r.durationMs) && r.durationMs >= 0) {
+      stats.totalDurationMs += r.durationMs
+      durationCount++
+    }
+    if (r.sessionId) sessions.add(r.sessionId)
+
+    const key = projectNameFromDirectory(r.project) ?? "(sin proyecto)"
+    let ps = byProject.get(key)
+    if (!ps) {
+      ps = { project: key, turns: 0, finished: 0, interrupted: 0, errors: 0, totalDurationMs: 0 }
+      byProject.set(key, ps)
+    }
+    ps.turns++
+    if (r.status === STATUS_FINISHED) ps.finished++
+    else if (r.status === STATUS_INTERRUPTED) ps.interrupted++
+    else if (r.status === STATUS_ERROR) ps.errors++
+    if (typeof r.durationMs === "number" && Number.isFinite(r.durationMs) && r.durationMs >= 0) {
+      ps.totalDurationMs += r.durationMs
+    }
+  }
+
+  if (durationCount > 0) stats.avgDurationMs = Math.round(stats.totalDurationMs / durationCount)
+  stats.sessions = sessions.size
+  stats.byProject = [...byProject.values()].sort((a, b) => b.turns - a.turns)
+  return stats
+}
+
+/* --------------------------------- CSV ----------------------------------- */
+
+/** Escape CSV estándar: comillas dobladas, campo entre comillas si hace falta. */
+function csvField(value: string): string {
+  if (/[",\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`
+  return value
+}
+
+/** Serializa registros de turno a CSV (at,sessionId,status,durationMs,project,promptText). */
+export function turnsToCsv(records: TurnRecord[]): string {
+  const header = "at,sessionId,status,durationMs,project,promptText"
+  const rows = records
+    .filter(isTurnRecord)
+    .map((r) =>
+      [
+        r.at ?? "",
+        r.sessionId ?? "",
+        r.status ?? "",
+        typeof r.durationMs === "number" ? String(r.durationMs) : "",
+        r.project ?? "",
+        (r.promptText ?? "").replace(/\r?\n/g, "\\n"),
+      ]
+        .map(csvField)
+        .join(","),
+    )
+  return [header, ...rows].join("\n") + "\n"
+}
+
+/* ------------------------------ rama de git ------------------------------- */
+
+/**
+ * Extrae la rama del contenido de `.git/HEAD` (ref: refs/heads/<rama>).
+ * Pura: solo interpreta texto; la lectura del fichero vive en index.ts.
+ */
+export function parseGitHead(content: string | null | undefined): string | null {
+  if (!content) return null
+  const m = content.match(/^ref:\s*refs\/heads\/([^\s\r\n]+)/)
+  return m ? m[1] : null
+}
+
+/* --------------------------- notificación del OS --------------------------- */
+
+export interface OsNotifyCommand {
+  cmd: string
+  args: string[]
+}
+
+/**
+ * Construye (sin ejecutar) el comando de notificación del sistema para la
+ * plataforma dada. null si la plataforma no está soportada. Pura y testeable:
+ * index.ts solo la ejecuta de forma best-effort con child_process.spawn.
+ */
+export function buildOsNotifyCommand(
+  platform: string,
+  title: string,
+  message: string,
+): OsNotifyCommand | null {
+  const singleQuoteEscape = (s: string) => s.replace(/'/g, "''").replace(/\r?\n/g, " ")
+  switch (platform) {
+    case "win32": {
+      const script =
+        "$t='" +
+        singleQuoteEscape(title) +
+        "'; $m='" +
+        singleQuoteEscape(message) +
+        "'; Add-Type -AssemblyName System.Windows.Forms; " +
+        "$n=New-Object System.Windows.Forms.NotifyIcon; " +
+        "$n.Icon=[System.Drawing.SystemIcons]::Information; $n.Visible=$true; " +
+        "$n.ShowBalloonTip(10000,$t,$m,'Info')"
+      return { cmd: "powershell.exe", args: ["-NoProfile", "-NonInteractive", "-Command", script] }
+    }
+    case "linux":
+      return { cmd: "notify-send", args: [title, message] }
+    case "darwin":
+      return {
+        cmd: "osascript",
+        args: [
+          "-e",
+          `display notification ${JSON.stringify(message)} with title ${JSON.stringify(title)}`,
+        ],
+      }
+    default:
+      return null
+  }
+}
+
+/* ---------------------------- rotación del log ---------------------------- */
+
+/** Nombre del fichero de archivo del log para un día local YYYY-MM-DD. */
+export function archiveLogName(dayLocal: string): string {
+  return `turns-${dayLocal}.jsonl`
+}
+
+/** ¿Toca rotar el log? (maxBytes <= 0 significa sin rotación). */
+export function shouldRotateLog(sizeBytes: number, maxBytes: number): boolean {
+  if (maxBytes <= 0) return false
+  return sizeBytes >= maxBytes
+}
+
 export interface RecallFormatOptions {
   status: RecallStatus
   promptText: string

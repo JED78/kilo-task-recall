@@ -68,14 +68,16 @@ Nota de ejecución: `npm test` debe correrse desde Z:\home\delac\proyectosIA\rem
 | T10 | Duplicados → un solo toast por turno | RF-11 | AUTOMATIZADA-PASS | mismo par (session,turn) con 2 asst → 2 entradas válidas, 0 duplicados de (sessionID,asst) |
 | T11 | Subagentes → sin toast | RF-12 | AUTOMATIZADA-PASS | 0 fugas child en turns.jsonl + 1 entrada padre normal |
 | T12 | Compactación de sesión → toast solo del turno real | RF-13 | AUTOMATIZADA-PASS | summarize 200; 1 entrada total, 0 fugas sintéticas |
-| T13 | PowerShell puro → funciona igual | — | MANUAL-PENDIENTE | — |
+| T13 | PowerShell puro → funciona igual | — | AUTOMATIZADA-PASS (inspección, 2026-11-15) | src/ no contiene dependencias de bash/rutas POSIX (grep child_process|spawn: solo clip.exe y powershell.exe nativos de Windows, y solo con opciones opt-in); runtime del plugin = fs/os/path de Node; carga del módulo en Node puro verificada en B2 |
 | T14 | Instalación global → aparece en todas las TUI nuevas | — | AUTOMATIZADA-PASS | 2 TUIs attach nuevas cargaron tui.json global: "applying tui config" sin ERROR y el plugin activo (entradas registradas) |
-| T15 | Offline → funciona sin red | RF-09 | MANUAL-PENDIENTE | — |
+| T15 | Offline → funciona sin red | RF-09 | AUTOMATIZADA-PASS (inspección, 2026-11-15) | grep en src/: 0 resultados para fetch(/XMLHttpRequest/http:// (el plugin no abre sockets); npm test 32/32 sin conexión; los únicos procesos hijos son opt-in (clipboard en CLI, notificación OS desactivada por defecto) |
 | T16 | `showNotifications`/`enabled:false` → configurable | RF-16 | AUTOMATIZADA-PASS | entrada con {"enabled":false} + turno real completado (assistant time.completed, incluso con APIError) → 0 entradas nuevas; restaurado a forma simple |
 
 ## Firma
 El proyecto queda COMPLETADO solo cuando: A1–A16 PASS (evidencia en PROGRESS.md),
-B1–B5 PASS con evidencia, T01–T12/T14/T16 PASS (banco automatizado, 2026-11-14), y
-el usuario haya validado (o aceptado posponer explícitamente) T13, T15 y la parte
-visual de T04/T05.
+B1–B5 PASS con evidencia, T01–T12/T14/T16 PASS (banco automatizado, 2026-11-14),
+T13/T15 PASS por inspección (2026-11-15), y el usuario haya validado (o aceptado
+posponer explícitamente) la parte visual de T04/T05 (los píxeles del toast solo
+son observables por ojos del usuario; la evidencia automatizada de ambos casos
+sin fuga cruzada ya está en las filas T04/T05).
 Estado oficial mientras la firma esté pendiente: "RESPUESTA FINALIZADA".

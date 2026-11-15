@@ -19,6 +19,7 @@
  * de la sesión y el directorio de trabajo (api.state.path.directory).
  */
 
+import * as childProcess from "node:child_process"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
@@ -26,13 +27,19 @@ import * as path from "node:path"
 import type { TuiPluginApi } from "@kilocode/plugin/tui"
 
 import {
+  archiveLogName,
+  buildOsNotifyCommand,
   dedupKey,
   formatRecallMessage,
   isSeen,
   isSubagentSession,
+  parseGitHead,
   projectNameFromDirectory,
   pushSeen,
+  shouldRotateLog,
   summarizeTurn,
+  toLocalDateString,
+  turnPassesFilters,
   type EngineMessage,
   type EngineTextPart,
 } from "./recall-engine.ts"
@@ -47,9 +54,21 @@ export interface KiloTaskRecallOptions {
   toastDurationMs?: number
   logTurns?: boolean
   strictRouteMatch?: boolean
+  /** Duración mínima del turno en ms; turnos más cortos no muestran toast. */
+  minDurationMs?: number
+  /** Proyectos (nombre del directorio) cuyo turno se silencia. */
+  ignoreProjects?: string[]
+  /** Patrones de regex (código fuente) que silencian por texto del prompt. */
+  ignorePromptPatterns?: string[]
+  /** Añade la rama git del proyecto al toast (leída de .git/HEAD). */
+  showGitBranch?: boolean
+  /** Notificación del sistema operativo (balloon/notify-send/osascript). */
+  osNotifications?: boolean
+  /** Tamaño máximo de turns.jsonl antes de rotarlo (bytes; 0 = sin rotación). */
+  logMaxBytes?: number
 }
 
-const DEFAULTS: Required<Omit<KiloTaskRecallOptions, never>> = {
+const DEFAULTS: Required<KiloTaskRecallOptions> = {
   enabled: true,
   showOriginalPrompt: true,
   showDuration: true,
@@ -59,6 +78,12 @@ const DEFAULTS: Required<Omit<KiloTaskRecallOptions, never>> = {
   toastDurationMs: 10000,
   logTurns: true,
   strictRouteMatch: true,
+  minDurationMs: 0,
+  ignoreProjects: [],
+  ignorePromptPatterns: [],
+  showGitBranch: false,
+  osNotifications: false,
+  logMaxBytes: 5 * 1024 * 1024,
 }
 
 const KV_SEEN_KEY = "ktr:seen-keys"
@@ -107,17 +132,74 @@ export function belongsToThisTui(
   return false
 }
 
+/** Rama git del proyecto, leída de `<dir>/.git/HEAD` (best-effort, sin spawn). */
+export function gitBranchFromDirectory(directory: string | null | undefined): string | null {
+  if (!directory) return null
+  try {
+    const head = fs.readFileSync(path.join(directory, ".git", "HEAD"), "utf8")
+    return parseGitHead(head)
+  } catch {
+    return null
+  }
+}
+
+/** Rotación del log: mueve turns.jsonl a turns-<día>.jsonl cuando supera maxBytes. */
+export function rotateLogIfNeeded(dir: string, maxBytes: number): void {
+  try {
+    if (maxBytes <= 0) return
+    const file = path.join(dir, "turns.jsonl")
+    let size = 0
+    try {
+      size = fs.statSync(file).size
+    } catch {
+      return // no existe: nada que rotar
+    }
+    if (!shouldRotateLog(size, maxBytes)) return
+    const target = path.join(dir, archiveLogName(toLocalDateString(new Date())))
+    // Evitar sobreescribir un archivo del mismo día: sufijo con hora.
+    let final = target
+    if (fs.existsSync(target)) {
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-")
+      final = target.replace(/\.jsonl$/, `-${stamp}.jsonl`)
+    }
+    fs.renameSync(file, final)
+  } catch {
+    /* la rotación nunca debe romper el recordatorio */
+  }
+}
+
 async function appendTurnLog(
   dir: string,
   record: Record<string, unknown>,
+  maxBytes = 0,
 ): Promise<string | null> {
   try {
     fs.mkdirSync(dir, { recursive: true })
+    if (maxBytes > 0) rotateLogIfNeeded(dir, maxBytes)
     const file = path.join(dir, "turns.jsonl")
     fs.appendFileSync(file, JSON.stringify(record) + "\n", "utf8")
     return file
   } catch {
     return null // el recordatorio nunca debe fallar por el log
+  }
+}
+
+/** Notificación del SO: construye el comando puro y lo lanza best-effort. */
+function notifyOs(platform: string, title: string, message: string): void {
+  try {
+    const notif = buildOsNotifyCommand(platform, title, message)
+    if (!notif) return
+    const c = childProcess.spawn(notif.cmd, notif.args, {
+      stdio: "ignore",
+      detached: true,
+      windowsHide: true,
+    })
+    c.on("error", () => {
+      /* sin notificador instalado: silencioso */
+    })
+    c.unref()
+  } catch {
+    /* best-effort */
   }
 }
 
@@ -179,6 +261,19 @@ export const KiloTaskRecall = async (
       const turn = summarizeTurn(sessionID, messages, partsByMessage)
       if (!turn) return // turno sintético/subagente/sin prompt real
 
+      const projectName = projectNameFromDirectory(session.directory)
+
+      // Filtros configurables (umbral de duración, proyectos, patrones).
+      if (
+        !turnPassesFilters(turn, projectName, {
+          minDurationMs: cfg.minDurationMs,
+          ignoreProjects: cfg.ignoreProjects,
+          ignorePromptPatterns: cfg.ignorePromptPatterns,
+        })
+      ) {
+        return // turno filtrado: ni toast ni log (no marca dedup)
+      }
+
       const key = dedupKey(sessionID, turn)
       if (isSeen(seen, key)) return
       seen = pushSeen(seen, key, SEEN_LIMIT)
@@ -188,26 +283,35 @@ export const KiloTaskRecall = async (
         status: turn.status,
         promptText: turn.promptText,
         durationMs: turn.durationMs,
-        projectName: projectNameFromDirectory(session.directory),
+        projectName,
         showOriginalPrompt: cfg.showOriginalPrompt,
         showDuration: cfg.showDuration,
         showProject: cfg.showProject,
         maxPromptDisplayLength: cfg.maxPromptDisplayLength,
       })
 
+      if (cfg.showGitBranch) {
+        const branch = gitBranchFromDirectory(session.directory)
+        if (branch) toast.message = `${toast.message}\n🌿 ${branch}`
+      }
+
       // Evidencia SIEMPRE antes de renderizar (texto completo, sin truncar).
-      void appendTurnLog(evidenceDir(), {
-        at: new Date().toISOString(),
-        sessionId: turn.sessionId,
-        userMessageId: turn.userMessageId,
-        assistantMessageId: turn.assistantMessageId,
-        promptText: turn.promptText,
-        promptLength: turn.promptLength,
-        durationMs: turn.durationMs,
-        status: turn.status,
-        errorName: turn.errorName,
-        project: session.directory ?? null,
-      })
+      void appendTurnLog(
+        evidenceDir(),
+        {
+          at: new Date().toISOString(),
+          sessionId: turn.sessionId,
+          userMessageId: turn.userMessageId,
+          assistantMessageId: turn.assistantMessageId,
+          promptText: turn.promptText,
+          promptLength: turn.promptLength,
+          durationMs: turn.durationMs,
+          status: turn.status,
+          errorName: turn.errorName,
+          project: session.directory ?? null,
+        },
+        cfg.logMaxBytes,
+      )
 
       await api.ui.toast({
         variant: toast.variant,
@@ -226,6 +330,10 @@ export const KiloTaskRecall = async (
         } catch {
           /* la notificación es best-effort */
         }
+      }
+
+      if (cfg.osNotifications) {
+        notifyOs(process.platform, toast.title, toast.message)
       }
     } catch (err) {
       // Nunca romper la TUI por un fallo del plugin.

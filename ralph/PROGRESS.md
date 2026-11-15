@@ -54,3 +54,17 @@ Guía paso a paso: `docs/MANUAL-TEST-GUIDE.md`. Estado en ralph/ACCEPTANCE.md §
 - Ninguna afirmación de este informe carece de evidencia: cada punto cita la iteración y las líneas exactas de PROGRESS.md donde está pegada la salida de comando correspondiente.
 - Estados declarados: 21 verificaciones AUTOMATIZADA-PASS (A1–A16 + B1–B5) con salida de comando registrada; 16 pruebas MANUAL-PENDIENTE (T01–T16) correctamente marcadas como pendientes del usuario, ninguna marcada MANUAL-PASS sin su evidencia.
 - El motor y el plugin se declaran en estado "RESPUESTA FINALIZADA"; el proyecto no declara "TAREA COMPLETADA" hasta que el usuario valide T01–T16 según el criterio de firma de ACCEPTANCE.md.
+
+### 4. Extensiones v2 (2026-11-15, iter 18)
+Implementadas las 10 mejoras aprobadas por el usuario ("HAZ TODO"):
+- Filtros configurables: minDurationMs, ignoreProjects (sin mayúsculas/minúsculas), ignorePromptPatterns (regex tolerante a inválidos) → turnPassesFilters (T-B3..T-B5).
+- Estadísticas multi-sesión y productividad: computeTurnStats (total/finished/interrupted/errors, media, sesiones distintas, por proyecto) (T-B8).
+- Rotación de turns.jsonl: rotateLogIfNeeded + shouldRotateLog + archiveLogName (turns-YYYY-MM-DD.jsonl, sufijo de hora si el día repite) (T-B13, T-B14).
+- Rama git en el toast: gitBranchFromDirectory + parseGitHead (lee .git/HEAD sin spawn) (T-B10, T-B11).
+- Notificación OS real: buildOsNotifyCommand (win32 powershell balloon/linux notify-send/darwin osascript) ejecutada best-effort cuando osNotifications:true (T-B12).
+- CLI de consulta: src/cli.ts (--today/--stats/--project/--status/--csv/--last/--clip). VERIFICADO en vivo: 
+ode src/cli.ts --file "$env:LOCALAPPDATA\kilo-task-recall\turns.jsonl --last imprimió el último prompt real del log.
+- Reutilizar último prompt: opción CLI --last --clip (copia al portapapeles: clip.exe/pbcopy/wl-copy). La inyección directa en el input no existe en la API de plugins Kilo (documentado en docs/DESIGN.md).
+- Test suite: 32/32 PASS (T-A1..T-A18 + T-B1..T-B14), evidencia en esta iteración.
+- Banco T01-T16: T13 y T15 cerrados como AUTOMATIZADA-PASS por inspección con evidencia (grep: 0 dependencias de red o bash en src/; spawns solo Windows nativos opt-in; npm test 32/32 sin conexión). Ver ralph/ACCEPTANCE.md §C actualizado.
+- Estados: plugin sigue en "RESPUESTA FINALIZADA"; la firma requiere validación visual del usuario (T04/T05) según criterio de ACCEPTANCE.md.

@@ -56,6 +56,39 @@ Aceptado y registrado.
 texto completo del prompt (sin truncar), ids, duración, estado, proyecto.
 También registra errores internos del plugin (level: plugin-error).
 
+Rotación (v2, 2026-11-15): con `logMaxBytes` > 0 (default 5 MB) el log rota
+ANTES de cada append si `size >= logMaxBytes` → se renombra a
+`turns-YYYY-MM-DD.jsonl` (día local); si ese archivo ya existe, se añade un
+sufijo con fecha-hora para no sobreescribir. La rotación nunca rompe el toast
+(try/catch).
+
+### Filtros y estadísticas (v2, 2026-11-15)
+- `turnPassesFilters(turn, projectName, opts)`: `minDurationMs` (turnos más
+  cortos se silencian, pero null no filtra), `ignoreProjects` (nombre de
+  proyecto, case-insensitive), `ignorePromptPatterns` (código fuente de regex;
+  patrón inválido se ignora, nunca bloquea). Un turno filtrado NO se marca como
+  visto ni se registra en el log (vuelve antes del dedup).
+- `computeTurnStats(records)`: total/finished/interrupted/errors,
+  duración total y media, número de sesiones distintas, y desglose por proyecto
+  (ProjectStat). La actividad multi-sesión y la productividad (completados vs
+  interrumpidos/errores por proyecto) se exponen vía CLI (`--stats`, `--today`).
+
+### CLI de consulta (v2, 2026-11-15)
+`src/cli.ts` lee la evidencia y responde sin abrir Kilo:
+`--file` (default `evidenceDir()/turns.jsonl`), `--today` (día local),
+`--stats`, `--project X`, `--status X`, `--csv`, `--last` (último prompt,
+reutilización), `--clip` (portapapeles: clip.exe/pbcopy/wl-copy). El portapapeles
+es la vía disponible para "reusar el prompt": la API de plugins de Kilo no
+permite inyectar texto en el input de la TUI (limitación verificada 2026-11-15).
+
+### Notificación del OS y rama git (v2, 2026-11-15)
+- `osNotifications: true` → `buildOsNotifyCommand()` construye el comando puro
+  (win32: powershell.exe balloon tip con comillas dobladas y saltos aplanados;
+  linux: notify-send; darwin: osascript) y `notifyOs()` lo lanza detached/
+  best-effort. Plataformas no soportadas → null (no-op).
+- `showGitBranch: true` → `gitBranchFromDirectory()` lee `<dir>/.git/HEAD`
+  (sin spawn) y añade `🌿 <rama>` al toast.
+
 ### Testabilidad
 `src/recall-engine.ts` es puro y sin SDK (tipos espejo verificados). Los tests
 corren con `node --test` (Node 24, type stripping nativo, import con extensión
@@ -68,8 +101,8 @@ Detalles de implementación verificados:
   extensión; sin ella → ERR_MODULE_NOT_FOUND).
 - `evidenceDir()` usa `%LOCALAPPDATA%\kilo-task-recall`, con fallback a
   `$HOME/kilo-task-recall` y a `os.tmpdir()` (test T-A16).
-- Suite actual: 16 tests (T-A1..T-A16; T-A15 pertenencia multi-terminal RF-10,
-  T-A16 evidenceDir RF-15), todos en verde (`npm test` 2026-11-14).
+- Suite actual: 32 tests (T-A1..T-A18 + T-B1..T-B14 de las extensiones v2),
+  todos en verde (`npm test` 2026-11-15).
 
 ### Instalación
 UNA entrada en `C:\Users\delac\.config\kilo\tui.json` → array `plugin`, con

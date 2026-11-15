@@ -42,25 +42,42 @@ TypeScript cargado en runtime; no necesita build).
   "maxPromptDisplayLength": 2000,
   "toastDurationMs": 10000,
   "logTurns": true,
-  "strictRouteMatch": true
+  "strictRouteMatch": true,
+  "minDurationMs": 0,
+  "ignoreProjects": [],
+  "ignorePromptPatterns": [],
+  "showGitBranch": false,
+  "osNotifications": false,
+  "logMaxBytes": 5242880
 }]
+```
+
+## CLI de consulta (`src/cli.ts`)
+```powershell
+node src/cli.ts --today            # resumen del día (turnos, media, proyectos)
+node src/cli.ts --stats            # estadísticas de TODO el log
+node src/cli.ts --csv --today > dia.csv
+node src/cli.ts --last             # último prompt (para reutilizarlo)
+node src/cli.ts --last --clip      # …copiado al portapapeles (clip/pbcopy/wl-copy)
+node src/cli.ts --file otra-evidencia.jsonl --project demo --status ERROR
 ```
 
 ## Desarrollo
 ```
 npm install     # solo devDependencies (typescript, @types/node)
-npm test        # node --test tests/*.test.ts (18 pruebas T-A1..T-A18)
+npm test        # node --test tests/*.test.ts (32 pruebas: T-A1..T-A18 + T-B1..T-B14)
 npm run typecheck
 ```
 CI: GitHub Actions ejecuta tests + typecheck en Linux y Windows
 (`.github/workflows/ci.yml`).
 
 ## Pruebas
-- Unitarias: 18/18 en verde (`npm test`), estado en `ralph/ACCEPTANCE.md` §A.
-- Banco contra Kilo real (T01–T16): 13/16 PASS el 2026-11-14 — scripts en
-  `bench/`, evidencia y estado en `ralph/ACCEPTANCE.md` §C.
-- Pendientes de validación visual del usuario: el píxel del toast en pantalla,
-  T13 (PowerShell puro) y T15 (offline) — guía en `docs/MANUAL-TEST-GUIDE.md`.
+- Unitarias: 32/32 en verde (`npm test`), estado en `ralph/ACCEPTANCE.md` §A.
+- Banco contra Kilo real (T01–T16): 13/16 PASS automatizado el 2026-11-14;
+  T13 (PowerShell puro) y T15 (offline) cerrados por inspección con evidencia el
+  2026-11-15 — scripts en `bench/`, estado en `ralph/ACCEPTANCE.md` §C.
+- Pendiente de validación visual del usuario: el píxel del toast en pantalla
+  (parte manual de T04/T05) — guía en `docs/MANUAL-TEST-GUIDE.md`.
 
 ## Limitaciones conocidas
 - `kilo run` (modo no interactivo) no tiene TUI → no muestra recordatorio.
