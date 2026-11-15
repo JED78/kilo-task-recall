@@ -138,13 +138,19 @@ export function summarizeTurn(
 
   const user = messages[userIdx] as EngineUserMessage
   let assistant: EngineAssistantMessage | undefined
+  let fallback: EngineAssistantMessage | undefined // primer assistant tras el user
   for (let i = userIdx + 1; i < messages.length; i++) {
     const m = messages[i]
     if (m && m.role === "assistant") {
-      assistant = m as EngineAssistantMessage
-      if (assistant.parentID === user.id) break // match exacto por parentID
+      const a = m as EngineAssistantMessage
+      if (a.parentID === user.id) {
+        assistant = a
+        break // match exacto por parentID
+      }
+      if (!fallback) fallback = a // sin parentID fiable: el primero tras el user
     }
   }
+  if (!assistant) assistant = fallback
 
   const promptText = extractPromptText(partsByMessage[user.id])
   const errorName = assistant?.error?.name ?? null
@@ -196,9 +202,9 @@ export function truncateText(text: string, max: number): string {
   return text.slice(0, Math.max(0, max - 1)) + "…"
 }
 
-/** Duración legible: 45s / 2m 05s / 1h 02m; null si se desconoce. */
+/** Duración legible: 45s / 2m 05s / 1h 02m; null si se desconoce o es negativa. */
 export function fmtDuration(ms: number | null): string | null {
-  if (ms === null || !Number.isFinite(ms)) return null
+  if (ms === null || !Number.isFinite(ms) || ms < 0) return null
   const s = Math.round(ms / 1000)
   if (s < 60) return `${s}s`
   const m = Math.floor(s / 60)

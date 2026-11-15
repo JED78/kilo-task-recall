@@ -280,10 +280,27 @@ test("T-A16 (RF-15): evidenceDir usa LOCALAPPDATA, con fallback a HOME", () => {
 
     delete process.env.HOME
     assert.ok(evidenceDir().endsWith(nodePath.join("kilo-task-recall"))) // último recurso: tmpdir
-  } finally {
-    if (prevLocal !== undefined) process.env.LOCALAPPDATA = prevLocal
-    else delete process.env.LOCALAPPDATA
-    if (prevHome !== undefined) process.env.HOME = prevHome
-    else delete process.env.HOME
+      } finally {
+      if (prevLocal !== undefined) process.env.LOCALAPPDATA = prevLocal
+      else delete process.env.LOCALAPPDATA
+      if (prevHome !== undefined) process.env.HOME = prevHome
+      else delete process.env.HOME
+    }
   }
+)
+
+test("T-A17 (E2): fmtDuration con duración negativa o inválida → null", () => {
+  assert.equal(fmtDuration(-500), null)
+  assert.equal(fmtDuration(Number.NaN), null)
+  assert.equal(fmtDuration(0), "0s") // 0 sigue siendo válido
+})
+
+test("T-A18 (E1): sin parentID en ningún assistant → fallback al PRIMERO tras el user", () => {
+  const u = user("u1", 1000)
+  const a1 = { ...assistant("a1", "otro", 2000, 3000) } // primer assistant tras el user
+  const a2 = { ...assistant("a2", "otro", 4000, 5000) } // assistant posterior (de otro turno potencial)
+  const turn = summarizeTurn("sesX", [u, a1, a2], {})
+  assert.ok(turn)
+  assert.equal(turn.assistantMessageId, "a1") // NO a2 (comportamiento anterior)
+  assert.equal(turn.durationMs, 2000) // completed(a1) - created(u1)
 })

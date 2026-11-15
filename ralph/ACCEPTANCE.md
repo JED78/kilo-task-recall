@@ -25,11 +25,13 @@ Prohibido marcar MANUAL-PASS sin captura/salida del usuario. Prohibido declarar
 | A13 | Sin user real → null | RF-13 | AUTOMATIZADA-PASS | npm test 16/16 (2026-11-14) |
 | A14 | Match assistant por parentID | RF-02 | AUTOMATIZADA-PASS | npm test 16/16 |
 | A15 | Pertenencia multi-terminal (route/directorio, strict) | RF-10 | AUTOMATIZADA-PASS | npm test 16/16 |
-| A16 | evidenceDir LOCALAPPDATA + fallback HOME/tmpdir | RF-15 | AUTOMATIZADA-PASS | npm test 16/16 |
+| A16 | evidenceDir LOCALAPPDATA + fallback HOME/tmpdir | RF-15 | AUTOMATIZADA-PASS | npm test 18/18 (2026-11-14) |
+| A17 | fmtDuration: duración negativa/inválida → null (E2) | RF-03 | AUTOMATIZADA-PASS | npm test 18/18 |
+| A18 | Sin parentID en assistants → fallback al PRIMERO tras el user (E1) | RF-02 | AUTOMATIZADA-PASS | npm test 18/18 |
 
 Nota de ejecución: `npm test` debe correrse desde Z:\home\delac\proyectosIA\rembember_prompt\kilo-task-recall
 (desde UNC, cmd.exe cae al directorio Windows y reporta 0 tests — ver ERRORS.md).
-Última ejecución con evidencia: 2026-11-14 → tests 16, pass 16, fail 0, duration_ms 475.5.
+Última ejecución con evidencia: 2026-11-14 → tests 18, pass 18, fail 0 (con fixes E1/E2).
 
 ## B. Verificación de integración (semi-automatizadas, Ralph)
 | ID | Qué verifica | Estado | Evidencia |

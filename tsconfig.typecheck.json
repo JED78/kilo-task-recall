@@ -1,0 +1,7 @@
+{
+  // Typecheck del motor puro y de los tests. src/index.ts queda FUERA porque
+  // importa @kilocode/plugin/tui (tipos que viven en la instalación de Kilo,
+  // no en este repo). Verificarlo a mano con la TUI de Kilo.
+  "extends": "./tsconfig.json",
+  "include": ["src/recall-engine.ts", "tests/recall-engine.test.ts"]
+}

@@ -11,17 +11,29 @@ Sin IA adicional, sin API keys, 100 % offline.
 El plugin escucha el evento `session.idle` del bus de Kilo, lee el último turno
 real de la sesión (excluye mensajes sintéticos de compresión y subagentes),
 calcula la duración y muestra un `toast` (variant según estado). Cada turno se
-registra como evidencia en `%LOCALAPPDATA%\kilo-task-recall\turns.jsonl`.
+registra como evidencia en `%LOCALAPPDATA%\kilo-task-recall\turns.jsonl`
+(en Linux/macOS: `~/.local/share/kilo-task-recall/turns.jsonl`).
 
-## Instalación (ya autorizada y realizada en este proyecto)
-1. Copia de seguridad: `tui.json.backup-ktr`.
-2. Una entrada nueva en el array `plugin` de `C:\Users\delac\.config\kilo\tui.json`:
-   `"Z:/home/delac/proyectosIA/rembember_prompt/kilo-task-recall/src/index.ts"`.
-3. Reiniciar Kilo.
+## Instalación
+
+1. Clona o copia este repo a una ruta fija de tu máquina (usa una ruta local
+   del disco, no UNC): p. ej. `C:\tools\kilo-task-recall` o `~/tools/kilo-task-recall`.
+2. Haz copia de seguridad de tu configuración: copia
+   `~/.config/kilo/tui.json` → `tui.json.backup-ktr`
+   (en Windows: `C:\Users\<tu-usuario>\.config\kilo\tui.json`).
+3. Añade UNA entrada al array `plugin` de `tui.json` con la **ruta absoluta**
+   al `src/index.ts` de este proyecto:
+   ```json
+   "C:/tools/kilo-task-recall/src/index.ts"
+   ```
+4. Reinicia Kilo. Listo.
+
+Requisito: Node ≥ 22.6 en el host donde corre la TUI de Kilo (el plugin es
+TypeScript cargado en runtime; no necesita build).
 
 ## Configuración (opcional, segundo elemento de la entrada en tui.json)
 ```json
-["Z:/home/delac/proyectosIA/rembember_prompt/kilo-task-recall/src/index.ts", {
+["C:/tools/kilo-task-recall/src/index.ts", {
   "enabled": true,
   "showOriginalPrompt": true,
   "showDuration": true,
@@ -36,21 +48,33 @@ registra como evidencia en `%LOCALAPPDATA%\kilo-task-recall\turns.jsonl`.
 
 ## Desarrollo
 ```
-npm test        # node --test tests/*.test.ts (16 pruebas T-A1..T-A16)
+npm install     # solo devDependencies (typescript, @types/node)
+npm test        # node --test tests/*.test.ts (18 pruebas T-A1..T-A18)
+npm run typecheck
 ```
-Nota: ejecutar `npm test` siempre desde la unidad Z: (cmd.exe/npm no soportan
-rutas UNC; desde `\\wsl.localhost\...` npm reporta 0 tests).
+CI: GitHub Actions ejecuta tests + typecheck en Linux y Windows
+(`.github/workflows/ci.yml`).
 
 ## Pruebas
-- Automatizadas: 16/16 en verde (`npm test`), estado en `ralph/ACCEPTANCE.md` §A.
-- Semi-automatizadas (Ralph): estructura, carga sintáctica en Node, pipeline
-  `kilo run`/`kilo export`, instalación global y carga en Kilo → §B, PASS.
-- Manuales T01–T16: procedimiento paso a paso en `docs/MANUAL-TEST-GUIDE.md`;
-  pendientes de validación por el usuario → §C.
+- Unitarias: 18/18 en verde (`npm test`), estado en `ralph/ACCEPTANCE.md` §A.
+- Banco contra Kilo real (T01–T16): 13/16 PASS el 2026-11-14 — scripts en
+  `bench/`, evidencia y estado en `ralph/ACCEPTANCE.md` §C.
+- Pendientes de validación visual del usuario: el píxel del toast en pantalla,
+  T13 (PowerShell puro) y T15 (offline) — guía en `docs/MANUAL-TEST-GUIDE.md`.
 
 ## Limitaciones conocidas
 - `kilo run` (modo no interactivo) no tiene TUI → no muestra recordatorio.
 - Si dos terminales comparten servidor (`kilo serve`) y están en la misma vista
   (home del mismo proyecto), ambos procesos pueden recibir el mismo evento; el
   dedup por (sessionID + assistantMessageID) evita dobles toasts por proceso.
+- Con `strictRouteMatch: false` TODAS las terminales muestran TODOS los turnos
+  (útil para verlo todo; desactívalo solo si lo quieres así).
+- Fallo PRE-LLM (p. ej. modelo inexistente): Kilo nunca persiste el
+  AssistantMessage → el turno se registra con `assistantMessageId: null` y
+  estado `RESPUESTA FINALIZADA` (no hay datos para deducir el error).
+- Los errores de runtime del plugin se registran en el mismo `turns.jsonl` con
+  `level: "plugin-error"` (shape distinto del resto de entradas).
   Ver `docs/DESIGN.md`.
+
+## Licencia
+MIT — ver [LICENSE](LICENSE).

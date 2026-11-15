@@ -1,0 +1,17 @@
+{
+  "task": "Configure OpenCode for Jan locally",
+  "server_url": "http://127.0.0.1:1337/v1",
+  "model": "Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf",
+  "configurations": [
+    {
+      "file": "~/.jan/config.toml",
+      "change": "Added [providers.my-local-provider] section with base_url and models"
+    },
+    {
+      "file": "~/.jan/projects/ProyectosIA-4f210a9e/agent.toml",
+      "change": "Uncommented and configured [provider] section to use my-local-provider"
+    }
+  ],
+  "status": "completed",
+  "user_confirmation": "Configuration is complete and ready to use"
+}
