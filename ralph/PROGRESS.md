@@ -68,3 +68,9 @@ ode src/cli.ts --file "$env:LOCALAPPDATA\kilo-task-recall\turns.jsonl --last imp
 - Test suite: 32/32 PASS (T-A1..T-A18 + T-B1..T-B14), evidencia en esta iteración.
 - Banco T01-T16: T13 y T15 cerrados como AUTOMATIZADA-PASS por inspección con evidencia (grep: 0 dependencias de red o bash en src/; spawns solo Windows nativos opt-in; npm test 32/32 sin conexión). Ver ralph/ACCEPTANCE.md §C actualizado.
 - Estados: plugin sigue en "RESPUESTA FINALIZADA"; la firma requiere validación visual del usuario (T04/T05) según criterio de ACCEPTANCE.md.
+
+### 5. Activación en vivo de opciones v2 (2026-11-15)
+- tui.json global: entrada del plugin convertida a tupla [ruta, opciones] según schema opencode.ai/tui.json (plugin items anyOf string | [string, object]).
+- Opciones activadas: showGitBranch: true, osNotifications: true.
+- Evidencia: backup previo tui.json.backup-ktr-20261115 (334 bytes); node -e JSON.parse(...) → PARSE OK, 4 plugins, options {"showGitBranch":true,"osNotifications":true}.
+- Verificación pendiente del usuario: abrir TUI nueva de Kilo en un proyecto git y terminar un turno → toast con rama + balloon tip del OS.
