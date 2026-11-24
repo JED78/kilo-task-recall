@@ -1,8 +1,8 @@
 # Kilo Task Recall
 
 Plugin TUI global para **Kilo Code CLI** (v7.8.27): cada vez que Kilo termina de
-responder, aparece automáticamente en esa misma terminal un recordatorio visual
-con el **prompt original** del turno, la **duración**, el **proyecto** y el
+responder, aparece automáticamente en esa misma terminal un recuerdo visual
+persistente con el **prompt original** del turno, la **duración**, el **proyecto** y el
 **estado** (`RESPUESTA FINALIZADA` / `INTERRUMPIDA` / `ERROR`).
 
 Sin IA adicional, sin API keys, 100 % offline.
@@ -10,8 +10,11 @@ Sin IA adicional, sin API keys, 100 % offline.
 ## Cómo funciona
 El plugin escucha el evento `session.idle` del bus de Kilo, lee el último turno
 real de la sesión (excluye mensajes sintéticos de compresión y subagentes),
-calcula la duración y muestra un `toast` (variant según estado). Cada turno se
-registra como evidencia en `%LOCALAPPDATA%\kilo-task-recall\turns.jsonl`
+calcula la duración y muestra un **banner persistente** en la parte inferior
+de la terminal (slot `app_bottom`). El banner **no desaparece solo**: permanece
+hasta que lo quitas con **Enter**, **ctrl+k** o el comando **/ktr-clear**, o
+hasta que llega un turno nuevo que lo reemplaza. Cada turno se registra como
+evidencia en `%LOCALAPPDATA%\kilo-task-recall\turns.jsonl`
 (en Linux/macOS: `~/.local/share/kilo-task-recall/turns.jsonl`).
 
 ## Instalación
@@ -41,6 +44,7 @@ TypeScript cargado en runtime; no necesita build).
   "showNotifications": false,
   "maxPromptDisplayLength": 2000,
   "toastDurationMs": 10000,
+  "promptLabel": "Escribiste:",
   "logTurns": true,
   "strictRouteMatch": true,
   "minDurationMs": 0,
@@ -76,14 +80,14 @@ CI: GitHub Actions ejecuta tests + typecheck en Linux y Windows
 - Banco contra Kilo real (T01–T16): 13/16 PASS automatizado el 2026-11-14;
   T13 (PowerShell puro) y T15 (offline) cerrados por inspección con evidencia el
   2026-11-15 — scripts en `bench/`, estado en `ralph/ACCEPTANCE.md` §C.
-- Pendiente de validación visual del usuario: el píxel del toast en pantalla
+- Pendiente de validación visual del usuario: el píxel del banner en pantalla
   (parte manual de T04/T05) — guía en `docs/MANUAL-TEST-GUIDE.md`.
 
 ## Limitaciones conocidas
 - `kilo run` (modo no interactivo) no tiene TUI → no muestra recordatorio.
 - Si dos terminales comparten servidor (`kilo serve`) y están en la misma vista
   (home del mismo proyecto), ambos procesos pueden recibir el mismo evento; el
-  dedup por (sessionID + assistantMessageID) evita dobles toasts por proceso.
+  dedup por (sessionID + assistantMessageID) evita dobles banners por proceso.
 - Con `strictRouteMatch: false` TODAS las terminales muestran TODOS los turnos
   (útil para verlo todo; desactívalo solo si lo quieres así).
 - Fallo PRE-LLM (p. ej. modelo inexistente): Kilo nunca persiste el

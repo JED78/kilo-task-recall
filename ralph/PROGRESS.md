@@ -101,3 +101,11 @@ ode src/cli.ts --file "$env:LOCALAPPDATA\kilo-task-recall\turns.jsonl --last imp
 - Commits: 6a84d38 (banner), 41f8fcc (etiqueta), bad0be2 (Enter), ae8f431 (CRLF→LF).
 - Estado: plugin operativo en WSL (evidencia automática + banner desplegado). Pendiente
   validación visual del usuario (T04/T05): aspecto del banner y tecla Enter en vivo.
+
+### 8. Operación continuada y README actualizado (2026-11-24)
+- El plugin operó sin incidencias: `turns.jsonl` con 9 entradas (2026-11-17 y
+  2026-11-24), 0 entradas `plugin-error`. El turno "continua" de hoy (20:01:04)
+  disparó el plugin correctamente → evidencia end-to-end repetida en días distintos.
+- README.md actualizado: describe el banner persistente (Enter/ctrl+k/ktr-clear)
+  en lugar del toast, y documenta la opción `promptLabel`.
+- Estado: plugin estable. Único pendiente: validación visual del usuario (T04/T05).
