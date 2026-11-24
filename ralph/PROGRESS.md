@@ -88,3 +88,16 @@ ode src/cli.ts --file "$env:LOCALAPPDATA\kilo-task-recall\turns.jsonl --last imp
   - Verificación empírica con TUI real: `timeout 15 script -qec kilo` → `kilo-task-recall-load-test.txt` escrito ("Plugin loaded at 2026-11-15T19:16:05.719Z") usando copia debug instrumentada; `loading/applying tui config` en log; sin errores de plugin.
   - Copia de Windows sincronizada con la versión limpia (sin console.error).
 - Estado: popup operativo en WSL (verificado hasta carga del plugin; toast end-to-end pendiente de validación visual del usuario). Windows: pendiente de reinicio del TUI por el usuario (último arranque 18:40, antes del cambio de tupla).
+
+### 7. Banner persistente y verificación end-to-end (2026-11-17)
+- El toast con duration=0 no se podía descartar con click (Kilo 7.8.27 no lo soporta).
+- Reemplazado por banner persistente en slot `app_bottom` (src/banner.tsx, SolidJS):
+  - Se quita con Enter (fallthrough: además envía el prompt), ctrl+k o /ktr-clear.
+  - Solo intercepta Enter cuando el banner está visible (no afecta al prompt normal).
+  - Etiqueta "Escribiste:" a la izquierda del prompt (configurable: promptLabel).
+- Verificación end-to-end con evidencia real: `~/.local/share/kilo-task-recall/turns.jsonl`
+  registra los turnos reales de la sesión del 2026-11-17 22:20-22:21 (prompts "capital españa"
+  y "haz commit de todo y sube") → el plugin carga, procesa session.idle y escribe evidencia.
+- Commits: 6a84d38 (banner), 41f8fcc (etiqueta), bad0be2 (Enter), ae8f431 (CRLF→LF).
+- Estado: plugin operativo en WSL (evidencia automática + banner desplegado). Pendiente
+  validación visual del usuario (T04/T05): aspecto del banner y tecla Enter en vivo.
